@@ -18,6 +18,7 @@ const LoginPage = () => {
     login(formData);
   };
 
+
   return (
     <div className="h-screen grid lg:grid-cols-2">
       {/* Left Side - Form */}
@@ -74,7 +75,7 @@ const LoginPage = () => {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute z-10 inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (

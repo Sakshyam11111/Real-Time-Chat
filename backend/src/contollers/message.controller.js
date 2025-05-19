@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export const getUsersForSiderbar = async (req, res) => {
   try {
@@ -43,24 +44,26 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl;
     if (image) {
-        //Upload base64 image to cloudinary
-        const uploadResponse = await cloudinary.uploader.upload(image);
-        imageUrl = uploadResponse.secure_url;
+      //Upload base64 image to cloudinary
+      const uploadResponse = await cloudinary.uploader.upload(image);
+      imageUrl = uploadResponse.secure_url;
     }
 
     const newMessage = new Message({
-        senderId,
-        receiverId,
-        text,
-        image: imageUrl,
+      senderId,
+      receiverId,
+      text,
+      image: imageUrl,
     });
 
     await newMessage.save();
 
-    // todo: realtime functionality goes here => socket.io
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
 
-    res.status(201).json(newMessage)
-
+    res.status(201).json(newMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });

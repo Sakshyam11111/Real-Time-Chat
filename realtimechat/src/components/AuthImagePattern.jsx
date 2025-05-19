@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 const AuthImagePattern = ({ title, subtitle }) => {
     return (
@@ -8,8 +8,7 @@ const AuthImagePattern = ({ title, subtitle }) => {
                     {[...Array(9)].map((_, i) => (
                         <div
                             key={i}
-                            className={`aspect-square rounded-2xl bg-primary/10 ${i % 2 === 0 ? "animate-pulse" : ""
-                                }`}
+                            className={`aspect-square rounded-2xl bg-primary/10 ${i % 2 === 0 ? "animate-pulse" : ""}`}
                         />
                     ))}
                 </div>

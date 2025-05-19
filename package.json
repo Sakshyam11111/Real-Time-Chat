@@ -1,0 +1,32 @@
+{
+  "name": "realtime-chat-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd realtimechat && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd realtimechat && npm run build",
+    "build": "npm run build:backend && npm run build:realtimechat",
+    "start:backend": "cd backend && npm start",
+    "preview:frontend": "cd realtimechat && npm run preview"
+  },
+
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakshyam11111/Real-Time-Chat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sakshyam11111/Real-Time-Chat/issues"
+  },
+  "homepage": "https://github.com/Sakshyam11111/Real-Time-Chat#readme",
+  "description": ""
+}

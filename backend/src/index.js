@@ -17,15 +17,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
-
 app.use("/api/auth", authRoutes);
-app.use("/api/message", messageRoutes);
+app.use("/api/messages", messageRoutes);
 
-app.listen(5001, () => {
+app.listen(PORT, () => {
   console.log("server is running on PORT:" + PORT);
   connectDB();
 });
