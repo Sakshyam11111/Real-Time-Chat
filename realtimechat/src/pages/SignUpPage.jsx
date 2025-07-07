@@ -99,6 +99,12 @@ const SignUpPage = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
+
+
+
+
+
+                
                 <button
                   type='button'
                   className='absolute z-10 inset-y-0 right-0 pr-3 flex items-center'
