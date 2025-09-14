@@ -97,14 +97,22 @@ export const updateProfile = async (req, res) => {
       return res.status(400).json({ message: "Profile pic is required" });
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
-    const updateUser = await User.findByIdAndUpdate(
-      userID,
-      { profilePic: uploadResponse.secure_url },
-      { new: true }
-    );
+    console.log("Uploading profile pic to Cloudinary...");
+    try {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+        resource_type: "auto",
+      });
+      const updateUser = await User.findByIdAndUpdate(
+        userID,
+        { profilePic: uploadResponse.secure_url },
+        { new: true }
+      );
 
-    res.status(200).json(updateUser);
+      res.status(200).json(updateUser);
+    } catch (cloudinaryError) {
+      console.error("Cloudinary upload error:", cloudinaryError);
+      return res.status(500).json({ message: "Failed to upload profile picture" });
+    }
   } catch (error) {
     console.log("error in update profile:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -117,5 +125,17 @@ export const checkAuth = (req, res) => {
   } catch (error) {
     console.log("Error in checkAuth controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Test Cloudinary endpoint (optional - for debugging)
+export const testCloudinary = async (req, res) => {
+  try {
+    const result = await cloudinary.uploader.upload(
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+    );
+    res.json({ success: true, url: result.secure_url });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

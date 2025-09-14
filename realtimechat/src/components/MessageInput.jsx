@@ -12,14 +12,25 @@ const MessageInput = () => {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
+      return;
+    }
+
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
       return;
     }
 
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
+    };
+    reader.onerror = () => {
+      toast.error("Error reading file");
     };
     reader.readAsDataURL(file);
   };
@@ -34,6 +45,8 @@ const MessageInput = () => {
     if (!text.trim() && !imagePreview) return;
 
     try {
+      console.log("Sending message with:", { text: text.trim(), image: imagePreview ? "base64 data" : null });
+      
       await sendMessage({
         text: text.trim(),
         image: imagePreview,
@@ -45,6 +58,7 @@ const MessageInput = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Failed to send message:", error);
+      toast.error("Failed to send message");
     }
   };
 
@@ -107,4 +121,5 @@ const MessageInput = () => {
     </div>
   );
 };
+
 export default MessageInput;

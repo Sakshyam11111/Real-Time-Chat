@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Camera, Mail, User } from "lucide-react";
+import toast from "react-hot-toast";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
@@ -10,15 +11,45 @@ const ProfilePage = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    console.log("Selected file:", file);
 
-    reader.readAsDataURL(file);
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
 
     reader.onload = async () => {
       const base64Image = reader.result;
+      console.log("Base64 image length:", base64Image.length);
+      
       setSelectedImg(base64Image);
-      await updateProfile({ profilePic: base64Image });
+      
+      try {
+        await updateProfile({ profilePic: base64Image });
+        toast.success("Profile picture updated successfully!");
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        toast.error("Failed to update profile picture");
+        setSelectedImg(null); // Reset on error
+      }
     };
+
+    reader.onerror = () => {
+      console.error("Error reading file");
+      toast.error("Error reading file");
+    };
+
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -36,7 +67,11 @@ const ProfilePage = () => {
               <img
                 src={selectedImg || authUser.profilePic || "/avatar.png"}
                 alt="Profile"
-                className="w-32 h-32 rounded-full object-cover border-4"
+                className="w-32 h-32 rounded-full object-cover border-4 border-base-200"
+                onError={(e) => {
+                  console.error("Error loading image");
+                  e.target.src = "/avatar.png";
+                }}
               />
               <label
                 htmlFor="avatar-upload"
@@ -53,14 +88,16 @@ const ProfilePage = () => {
                   type="file"
                   id="avatar-upload"
                   className="hidden"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
                   onChange={handleImageUpload}
                   disabled={isUpdatingProfile}
                 />
               </label>
             </div>
-            <p className="text-sm text-zinc-400">
-              {isUpdatingProfile ? "Uploading..." : "Click the camera icon to update your photo"}
+            <p className="text-sm text-zinc-400 text-center max-w-sm">
+              {isUpdatingProfile 
+                ? "Uploading..." 
+                : "Click the camera icon to update your photo. Max size: 5MB. Supported formats: JPEG, PNG, GIF, WebP"}
             </p>
           </div>
 
@@ -87,7 +124,7 @@ const ProfilePage = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-2 border-b border-zinc-700">
                 <span>Member Since</span>
-                <span>{new Date(authUser.createdAt).toLocaleDateString()}</span>
+                <span>{authUser?.createdAt ? new Date(authUser.createdAt).toLocaleDateString() : 'Unknown'}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span>Account Status</span>
