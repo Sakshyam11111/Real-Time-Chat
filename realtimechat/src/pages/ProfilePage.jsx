@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Camera, MapPin, Calendar, Clock, Eye, Trash2 } from "lucide-react";
+import { Camera, MapPin, Calendar, Clock, Eye, Trash2, AtSign, FileText, Users } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useStoryStore } from "../store/useStoryStore";
 import { usePostStore } from "../store/usePostStore";
 import { getTimeAgo } from "../lib/utils";
-import PostCard from "../components/PostCard"; // Assuming PostCard is imported from components
+import PostCard from "../components/PostCard";
 
 const ProfilePage = () => {
   const { authUser, updateProfile, isUpdatingProfile } = useAuthStore();
@@ -64,7 +64,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-base-200 pt-20">
-      <div className="max-w-2xl mx-auto p-4"> {/* Adjusted to match SocialFeedPage width */}
+      <div className="max-w-2xl mx-auto p-4">
         {/* Profile Header */}
         <div className="bg-base-100 rounded-lg p-6 mb-6 shadow-sm">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -92,7 +92,32 @@ const ProfilePage = () => {
 
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-3xl font-bold mb-2">{authUser?.fullName}</h1>
-              <p className="text-base-content/60 mb-4">@{authUser?.email.split("@")[0]}</p>
+              
+              {/* Username */}
+              {authUser?.username && (
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                  <AtSign className="w-4 h-4 text-primary" />
+                  <p className="text-primary font-medium">@{authUser.username}</p>
+                </div>
+              )}
+
+              <p className="text-base-content/60 mb-2">{authUser?.email}</p>
+
+              {/* Bio */}
+              {authUser?.bio && (
+                <div className="flex items-start justify-center md:justify-start gap-2 mb-4">
+                  <FileText className="w-4 h-4 text-base-content/60 mt-0.5" />
+                  <p className="text-base-content/80">{authUser.bio}</p>
+                </div>
+              )}
+
+              {/* Gender */}
+              {authUser?.gender && authUser.gender !== 'prefer-not-to-say' && (
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                  <Users className="w-4 h-4 text-base-content/60" />
+                  <p className="text-base-content/60 capitalize">{authUser.gender}</p>
+                </div>
+              )}
 
               <div className="flex justify-center md:justify-start gap-6 mb-4">
                 <div className="text-center">
@@ -252,7 +277,7 @@ const ProfilePage = () => {
   );
 };
 
-// StoryCard Component (unchanged)
+// StoryCard Component
 const StoryCard = ({ story, onDelete, formatTimeLeft, isActive }) => {
   const [timeAgo, setTimeAgo] = useState("");
 

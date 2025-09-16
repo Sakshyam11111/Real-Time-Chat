@@ -3,8 +3,6 @@ import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5000" : "/";
-
 export const useAuthStore = create((set, get) => ({
   authUser: null,
   isSigningUp: false,
@@ -15,23 +13,12 @@ export const useAuthStore = create((set, get) => ({
   socket: null,
 
   checkAuth: async () => {
-    set({ isCheckingAuth: true });
     try {
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });
       get().connectSocket();
     } catch (error) {
       console.log("Error in checkAuth:", error);
-      if (error.code === "ERR_NETWORK") {
-        toast.error(
-          "Unable to connect to the server. Please check your network or try again later."
-        );
-      } else {
-        toast.error(
-          error.response?.data?.message ||
-            "An error occurred while checking authentication."
-        );
-      }
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
@@ -46,16 +33,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Account created successfully");
       get().connectSocket();
     } catch (error) {
-      console.log("Error in signup:", error);
-      if (error.code === "ERR_NETWORK") {
-        toast.error(
-          "Unable to connect to the server. Please check your network or try again later."
-        );
-      } else {
-        toast.error(
-          error.response?.data?.message || "An error occurred during signup."
-        );
-      }
+      toast.error(error.response.data.message);
     } finally {
       set({ isSigningUp: false });
     }
@@ -69,16 +47,7 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Logged in successfully");
       get().connectSocket();
     } catch (error) {
-      console.log("Error in login:", error);
-      if (error.code === "ERR_NETWORK") {
-        toast.error(
-          "Unable to connect to the server. Please check your network or try again later."
-        );
-      } else {
-        toast.error(
-          error.response?.data?.message || "An error occurred during login."
-        );
-      }
+      toast.error(error.response.data.message);
     } finally {
       set({ isLoggingIn: false });
     }
@@ -91,38 +60,20 @@ export const useAuthStore = create((set, get) => ({
       toast.success("Logged out successfully");
       get().disconnectSocket();
     } catch (error) {
-      console.log("Error in logout:", error);
-      if (error.code === "ERR_NETWORK") {
-        toast.error(
-          "Unable to connect to the server. Please check your network or try again later."
-        );
-      } else {
-        toast.error(
-          error.response?.data?.message || "An error occurred during logout."
-        );
-      }
+      toast.error(error.response.data.message);
     }
   },
 
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
     try {
-      console.log("Updating profile with data:", data);
       const res = await axiosInstance.put("/auth/update-profile", data);
       set({ authUser: res.data });
       toast.success("Profile updated successfully");
     } catch (error) {
-      console.log("Error in update profile:", error);
-      if (error.code === "ERR_NETWORK") {
-        toast.error(
-          "Unable to connect to the server. Please check your network or try again later."
-        );
-      } else {
-        toast.error(
-          error.response?.data?.message ||
-            "An error occurred during profile update."
-        );
-      }
+      console.log("error in update profile:", error);
+      toast.error(error.response?.data?.message || "Failed to update profile");
+      throw error; // Re-throw to handle in component
     } finally {
       set({ isUpdatingProfile: false });
     }
@@ -132,41 +83,21 @@ export const useAuthStore = create((set, get) => ({
     const { authUser } = get();
     if (!authUser || get().socket?.connected) return;
 
-    const socket = io(BASE_URL, {
+    const socket = io("http://localhost:5000", {
       query: {
         userId: authUser._id,
       },
-      transports: ['websocket', 'polling']
     });
-
     socket.connect();
 
-    socket.on("connect", () => {
-      console.log("Socket connected successfully");
-      set({ socket });
-    });
+    set({ socket: socket });
 
     socket.on("getOnlineUsers", (userIds) => {
-      console.log("Received online users:", userIds);
       set({ onlineUsers: userIds });
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
     });
   },
 
   disconnectSocket: () => {
-    const { socket } = get();
-    if (socket?.connected) {
-      socket.disconnect();
-      set({ socket: null, onlineUsers: [] });
-    }
+    if (get().socket?.connected) get().socket.disconnect();
   },
 }));
-
-export { io };

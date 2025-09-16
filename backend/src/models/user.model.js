@@ -11,6 +11,15 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        username: {
+            type: String,
+            unique: true,
+            sparse: true, // Allows null values while maintaining uniqueness for non-null values
+            trim: true,
+            minlength: 3,
+            maxlength: 20,
+            match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
+        },
         password: {
             type: String,
             required: true,
@@ -19,6 +28,16 @@ const userSchema = new mongoose.Schema(
         profilePic: {
             type: String,
             default: "",
+        },
+        bio: {
+            type: String,
+            maxlength: 300,
+            default: "",
+        },
+        gender: {
+            type: String,
+            enum: ['male', 'female', 'other', 'prefer-not-to-say'],
+            default: 'prefer-not-to-say',
         },
     },
     { timestamps: true }

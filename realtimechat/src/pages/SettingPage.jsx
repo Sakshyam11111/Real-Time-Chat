@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { THEMES } from "../constants";
 import { useThemeStore } from "../store/useThemeStore";
-import { Send } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
+import { Send, User, Edit } from "lucide-react";
+import EditProfileModal from "../components/EditProfileModal";
 
 const PREVIEW_MESSAGES = [
   { id: 1, content: "Hey! How's it going?", isSent: false },
@@ -10,10 +12,58 @@ const PREVIEW_MESSAGES = [
 
 const SettingsPage = () => {
   const { theme, setTheme } = useThemeStore();
+  const { authUser } = useAuthStore();
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   return (
     <div className="h-screen container mx-auto px-4 pt-20 max-w-5xl">
       <div className="space-y-6">
+        {/* Profile Section */}
+        <div className="bg-base-100 rounded-lg p-6 shadow-sm border border-base-200">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <User className="w-6 h-6" />
+                <div>
+                  <h2 className="text-lg font-semibold">Profile</h2>
+                  <p className="text-sm text-base-content/70">Manage your profile information</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEditProfile(true)}
+                className="btn btn-primary gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Edit Profile
+              </button>
+            </div>
+            
+            {/* Profile Preview */}
+            <div className="flex items-center gap-4 p-4 bg-base-200 rounded-lg">
+              <img
+                src={authUser?.profilePic || "/avatar.png"}
+                alt={authUser?.fullName}
+                className="w-16 h-16 rounded-full object-cover border-2 border-primary"
+              />
+              <div className="flex-1">
+                <h3 className="font-medium text-lg">{authUser?.fullName}</h3>
+                {authUser?.username && (
+                  <p className="text-sm text-primary">@{authUser.username}</p>
+                )}
+                <p className="text-sm text-base-content/70">{authUser?.email}</p>
+                {authUser?.bio && (
+                  <p className="text-sm text-base-content/60 mt-1">{authUser.bio}</p>
+                )}
+                {authUser?.gender && authUser.gender !== 'prefer-not-to-say' && (
+                  <p className="text-xs text-base-content/50 capitalize mt-1">
+                    {authUser.gender}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold">Theme</h2>
           <p className="text-sm text-base-content/70">Choose a theme for your chat interface</p>
@@ -111,6 +161,11 @@ const SettingsPage = () => {
           </div>
         </div>
       </div>
+
+      <EditProfileModal 
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+      />
     </div>
   );
 };
