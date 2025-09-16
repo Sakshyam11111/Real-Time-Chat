@@ -100,11 +100,6 @@ const SignUpPage = () => {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
 
-
-
-
-
-                
                 <button
                   type='button'
                   className='absolute z-10 inset-y-0 right-0 pr-3 flex items-center'
@@ -133,7 +128,7 @@ const SignUpPage = () => {
 
           <div className='text-center'>
             <p className='text-base-content/60'>
-              Already have an account?{""}
+              Already have an account?{" "}
               <Link to="/login" className='link link-primary'>
                 Sign in
               </Link>

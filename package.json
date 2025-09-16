@@ -12,11 +12,9 @@
     "start:backend": "cd backend && npm start",
     "preview:frontend": "cd realtimechat && npm run preview"
   },
-
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sakshyam11111/Real-Time-Chat.git"
@@ -28,5 +26,8 @@
     "url": "https://github.com/Sakshyam11111/Real-Time-Chat/issues"
   },
   "homepage": "https://github.com/Sakshyam11111/Real-Time-Chat#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "node-cron": "^4.2.1"
+  }
 }

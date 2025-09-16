@@ -5,15 +5,18 @@ import cors from "cors";
 
 import { connectDB } from "./lib/db.js";
 import { app, server } from "./lib/socket.js";
+import { setupStoryCleanup } from "./lib/cronJobs.js";
 
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
+import postRoutes from "./routes/post.route.js";
+import storyRoutes from "./routes/story.route.js";
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
-app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(
   cors({
@@ -24,8 +27,12 @@ app.use(
 
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/stories", storyRoutes);
 
 server.listen(PORT, () => {
   console.log("server is running on PORT:" + PORT);
   connectDB();
 });
+
+setupStoryCleanup();

@@ -32,6 +32,14 @@ io.on("connection", (socket) => {
     console.log("Online users:", Object.keys(userSocketMap));
   }
 
+  // Handle typing indicators for posts
+  socket.on("typing", (data) => {
+    socket.broadcast.emit("userTyping", {
+      userId: data.userId,
+      isTyping: data.isTyping,
+    });
+  });
+
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.id);
     
