@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { Heart, MessageCircle, Share, MoreHorizontal, Send, X, Trash2, Edit } from "lucide-react";
+import { Heart, MessageCircle, Share, MoreHorizontal, Send, X, Trash2, Edit, Smile, Reply } from "lucide-react";
 import { usePostStore } from "../store/usePostStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
+
+const EMOJIS = [
+  "😊", "😂", "❤️", "👍", "🔥", "💯", "🎉", "😍", "🤔", "😎",
+  "🥳", "😢", "😮", "😴", "🤗", "😘", "🙄", "😤", "🤩", "🥰"
+];
 
 const PostCard = ({ post }) => {
   const [showComments, setShowComments] = useState(false);
@@ -11,8 +16,12 @@ const PostCard = ({ post }) => {
   const [shareText, setShareText] = useState("");
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [showReplyEmojis, setShowReplyEmojis] = useState(false);
   
-  const { toggleLike, addComment, sharePost, deletePost } = usePostStore();
+  const { toggleLike, addComment, sharePost, deletePost, likeComment, replyToComment, likeReply } = usePostStore();
   const { authUser } = useAuthStore();
 
   const handleLike = () => {
@@ -26,9 +35,32 @@ const PostCard = ({ post }) => {
     try {
       await addComment(post._id, commentText.trim());
       setCommentText("");
+      setShowEmojis(false);
     } catch (error) {
       // Error handled in store
     }
+  };
+
+  const handleReply = async (e, commentId) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+
+    try {
+      await replyToComment(post._id, commentId, replyText.trim());
+      setReplyText("");
+      setReplyingTo(null);
+      setShowReplyEmojis(false);
+    } catch (error) {
+      // Error handled in store
+    }
+  };
+
+  const handleCommentLike = (commentId) => {
+    likeComment(post._id, commentId);
+  };
+
+  const handleReplyLike = (commentId, replyId) => {
+    likeReply(post._id, commentId, replyId);
   };
 
   const handleShare = async (e) => {
@@ -52,6 +84,16 @@ const PostCard = ({ post }) => {
     }
   };
 
+  const addEmoji = (emoji) => {
+    setCommentText(prev => prev + emoji);
+    setShowEmojis(false);
+  };
+
+  const addReplyEmoji = (emoji) => {
+    setReplyText(prev => prev + emoji);
+    setShowReplyEmojis(false);
+  };
+
   const handleOptionsClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -71,8 +113,10 @@ const PostCard = ({ post }) => {
     handleDelete();
   };
 
-  // Check if current user is the author of the post
   const isAuthor = authUser?._id === post.author?._id;
+
+  // Check if this is a shared post
+  const isSharedPost = post.isShared && post.originalPost;
 
   return (
     <div className="bg-base-100 rounded-lg shadow-sm border border-base-200 mb-4">
@@ -88,11 +132,11 @@ const PostCard = ({ post }) => {
             <h3 className="font-medium text-sm">{post.author?.fullName}</h3>
             <p className="text-xs text-base-content/60">
               {formatMessageTime(post.createdAt)}
+              {isSharedPost && <span className="ml-2 text-primary">shared a post</span>}
             </p>
           </div>
         </div>
         
-        {/* Options Menu */}
         <div className="relative">
           <button 
             className="btn btn-ghost btn-sm btn-circle"
@@ -132,30 +176,70 @@ const PostCard = ({ post }) => {
         </div>
       </div>
 
-      {/* Post Content */}
-      <div className="px-4 pb-2">
-        {post.content?.text && (
-          <p className="text-sm mb-3 whitespace-pre-wrap">{post.content.text}</p>
-        )}
-      </div>
-
-      {/* Post Image */}
-      {post.content?.image && (
-        <div className="px-4 pb-3">
-          <img
-            src={post.content.image}
-            alt="Post content"
-            className="w-full rounded-lg max-h-96 object-cover"
-          />
+      {/* Share Content */}
+      {isSharedPost && post.shareContent && (
+        <div className="px-4 pb-2">
+          <p className="text-sm text-base-content/80">{post.shareContent}</p>
         </div>
+      )}
+
+      {/* Original Post Content (if shared) or Regular Post Content */}
+      {isSharedPost ? (
+        <div className="mx-4 mb-2 border border-base-300 rounded-lg">
+          <div className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <img
+                src={post.originalPost.author?.profilePic || "/avatar.png"}
+                alt={post.originalPost.author?.fullName}
+                className="w-6 h-6 rounded-full object-cover"
+              />
+              <span className="text-sm font-medium">{post.originalPost.author?.fullName}</span>
+              <span className="text-xs text-base-content/60">
+                {formatMessageTime(post.originalPost.createdAt)}
+              </span>
+            </div>
+            
+            {post.originalPost.content && (
+              <p className="text-sm mb-2">{post.originalPost.content}</p>
+            )}
+            
+            {post.originalPost.image && (
+              <img
+                src={post.originalPost.image}
+                alt="Original post content"
+                className="w-full rounded-lg max-h-96 object-cover"
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Regular Post Content */}
+          <div className="px-4 pb-2">
+            {post.content && (
+              <p className="text-sm mb-3 whitespace-pre-wrap">{post.content}</p>
+            )}
+          </div>
+
+          {/* Post Image */}
+          {post.image && (
+            <div className="px-4 pb-3">
+              <img
+                src={post.image}
+                alt="Post content"
+                className="w-full rounded-lg max-h-96 object-cover"
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Post Stats */}
       <div className="px-4 py-2 border-t border-base-200 flex items-center justify-between text-sm text-base-content/60">
-        <span>{post.likesCount} likes</span>
+        <span>{post.likes?.length || 0} likes</span>
         <div className="flex gap-4">
-          <span>{post.commentsCount} comments</span>
-          <span>{post.sharesCount} shares</span>
+          <span>{post.comments?.length || 0} comments</span>
+          <span>{post.shares?.length || 0} shares</span>
         </div>
       </div>
 
@@ -164,10 +248,10 @@ const PostCard = ({ post }) => {
         <button
           onClick={handleLike}
           className={`btn btn-ghost btn-sm flex-1 ${
-            post.isLiked ? "text-red-500" : ""
+            post.likes?.includes(authUser?._id) ? "text-red-500" : ""
           }`}
         >
-          <Heart className={`w-4 h-4 mr-2 ${post.isLiked ? "fill-current" : ""}`} />
+          <Heart className={`w-4 h-4 mr-2 ${post.likes?.includes(authUser?._id) ? "fill-current" : ""}`} />
           Like
         </button>
         <button
@@ -190,22 +274,136 @@ const PostCard = ({ post }) => {
       {showComments && (
         <div className="border-t border-base-200 p-4">
           {/* Comments List */}
-          <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
-            {post.comments?.map((comment, index) => (
-              <div key={index} className="flex gap-2">
-                <img
-                  src={comment.user?.profilePic || "/avatar.png"}
-                  alt={comment.user?.fullName}
-                  className="w-6 h-6 rounded-full flex-shrink-0"
-                />
-                <div className="flex-1">
-                  <div className="bg-base-200 rounded-lg px-3 py-2">
-                    <p className="font-medium text-sm">{comment.user?.fullName}</p>
-                    <p className="text-sm">{comment.content}</p>
+          <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+            {post.comments?.map((comment) => (
+              <div key={comment._id} className="space-y-2">
+                {/* Main Comment */}
+                <div className="flex gap-2">
+                  <img
+                    src={comment.user?.profilePic || "/avatar.png"}
+                    alt={comment.user?.fullName}
+                    className="w-6 h-6 rounded-full flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <div className="bg-base-200 rounded-lg px-3 py-2">
+                      <p className="font-medium text-sm">{comment.user?.fullName}</p>
+                      <p className="text-sm">{comment.content}</p>
+                    </div>
+                    
+                    {/* Comment Actions */}
+                    <div className="flex items-center gap-4 mt-1 text-xs text-base-content/60">
+                      <span>{formatMessageTime(comment.createdAt)}</span>
+                      <button
+                        onClick={() => handleCommentLike(comment._id)}
+                        className={`flex items-center gap-1 hover:text-red-500 ${
+                          comment.likes?.includes(authUser?._id) ? "text-red-500" : ""
+                        }`}
+                      >
+                        <Heart className={`w-3 h-3 ${comment.likes?.includes(authUser?._id) ? "fill-current" : ""}`} />
+                        {comment.likes?.length || 0}
+                      </button>
+                      <button
+                        onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+                        className="hover:text-primary"
+                      >
+                        Reply
+                      </button>
+                    </div>
+
+                    {/* Replies */}
+                    {comment.replies?.length > 0 && (
+                      <div className="ml-4 mt-2 space-y-2">
+                        {comment.replies.map((reply) => (
+                          <div key={reply._id} className="flex gap-2">
+                            <img
+                              src={reply.user?.profilePic || "/avatar.png"}
+                              alt={reply.user?.fullName}
+                              className="w-5 h-5 rounded-full flex-shrink-0"
+                            />
+                            <div className="flex-1">
+                              <div className="bg-base-300 rounded-lg px-3 py-2">
+                                <p className="font-medium text-xs">{reply.user?.fullName}</p>
+                                <p className="text-sm">{reply.content}</p>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-base-content/60">
+                                <span>{formatMessageTime(reply.createdAt)}</span>
+                                <button
+                                  onClick={() => handleReplyLike(comment._id, reply._id)}
+                                  className={`flex items-center gap-1 hover:text-red-500 ${
+                                    reply.likes?.includes(authUser?._id) ? "text-red-500" : ""
+                                  }`}
+                                >
+                                  <Heart className={`w-3 h-3 ${reply.likes?.includes(authUser?._id) ? "fill-current" : ""}`} />
+                                  {reply.likes?.length || 0}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reply Input */}
+                    {replyingTo === comment._id && (
+                      <div className="mt-2 ml-4">
+                        <form onSubmit={(e) => handleReply(e, comment._id)} className="flex gap-2">
+                          <img
+                            src={authUser?.profilePic || "/avatar.png"}
+                            alt="You"
+                            className="w-5 h-5 rounded-full flex-shrink-0 mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder={`Reply to ${comment.user?.fullName}...`}
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                className="input input-bordered input-sm flex-1"
+                                maxLength={500}
+                              />
+                              
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowReplyEmojis(!showReplyEmojis)}
+                                  className="btn btn-ghost btn-sm"
+                                >
+                                  <Smile className="w-4 h-4" />
+                                </button>
+
+                                {showReplyEmojis && (
+                                  <div className="absolute bottom-full right-0 mb-2 bg-base-100 border rounded-lg p-2 shadow-lg grid grid-cols-5 gap-1 w-48 z-20">
+                                    {EMOJIS.map((emoji, index) => (
+                                      <button
+                                        key={index}
+                                        type="button"
+                                        onClick={() => addReplyEmoji(emoji)}
+                                        className="btn btn-ghost btn-sm text-lg p-1 h-auto min-h-0"
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                type="submit"
+                                disabled={!replyText.trim()}
+                                className="btn btn-primary btn-sm"
+                              >
+                                <Send className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="text-xs text-base-content/60 mt-1">
+                              {replyText.length}/500
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-base-content/60 mt-1">
-                    {formatMessageTime(comment.createdAt)}
-                  </p>
                 </div>
               </div>
             ))}
@@ -218,24 +416,123 @@ const PostCard = ({ post }) => {
               alt="You"
               className="w-6 h-6 rounded-full flex-shrink-0 mt-1"
             />
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                className="input input-bordered input-sm flex-1"
-                maxLength={500}
-              />
-              <button
-                type="submit"
-                disabled={!commentText.trim()}
-                className="btn btn-primary btn-sm"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+            <div className="flex-1">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  className="input input-bordered input-sm flex-1"
+                  maxLength={500}
+                />
+                
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojis(!showEmojis)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    <Smile className="w-4 h-4" />
+                  </button>
+
+                  {showEmojis && (
+                    <div className="absolute bottom-full right-0 mb-2 bg-base-100 border rounded-lg p-2 shadow-lg grid grid-cols-5 gap-1 w-48 z-20">
+                      {EMOJIS.map((emoji, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => addEmoji(emoji)}
+                          className="btn btn-ghost btn-sm text-lg p-1 h-auto min-h-0"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!commentText.trim()}
+                  className="btn btn-primary btn-sm"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="text-xs text-base-content/60 mt-1">
+                {commentText.length}/500
+              </div>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-base-100 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Share Post</h2>
+              <button onClick={() => setShowShareModal(false)} className="btn btn-ghost btn-sm btn-circle">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleShare} className="p-4 space-y-4">
+              <textarea
+                className="textarea textarea-bordered w-full min-h-[100px] resize-none"
+                placeholder="Add your thoughts about this post..."
+                value={shareText}
+                onChange={(e) => setShareText(e.target.value)}
+                maxLength={500}
+              />
+
+              <div className="text-sm text-base-content/60 text-right">
+                {shareText.length}/500
+              </div>
+
+              {/* Preview of original post */}
+              <div className="border border-base-300 rounded-lg p-3 bg-base-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src={post.author?.profilePic || "/avatar.png"}
+                    alt={post.author?.fullName}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                  <span className="text-sm font-medium">{post.author?.fullName}</span>
+                </div>
+                
+                {post.content && (
+                  <p className="text-sm text-base-content/80 line-clamp-3">{post.content}</p>
+                )}
+                
+                {post.image && (
+                  <img
+                    src={post.image}
+                    alt="Post preview"
+                    className="w-full rounded-lg max-h-32 object-cover mt-2"
+                  />
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowShareModal(false)}
+                  className="btn btn-ghost flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-1"
+                >
+                  Share Post
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -279,7 +576,7 @@ const PostCard = ({ post }) => {
         </>
       )}
 
-      {/* Click outside to close options menu */}
+      {/* Click outside to close menus */}
       {showOptionsMenu && (
         <div 
           className="fixed inset-0 z-40" 
@@ -287,6 +584,20 @@ const PostCard = ({ post }) => {
             e.preventDefault();
             setShowOptionsMenu(false);
           }}
+        />
+      )}
+
+      {showEmojis && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowEmojis(false)}
+        />
+      )}
+
+      {showReplyEmojis && (
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowReplyEmojis(false)}
         />
       )}
     </div>

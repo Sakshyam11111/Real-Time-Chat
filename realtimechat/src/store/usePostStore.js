@@ -8,12 +8,12 @@ export const usePostStore = create((set, get) => ({
   isPostsLoading: false,
   isCreatingPost: false,
   isDeletingPost: false,
+  isSharingPost: false,
 
   // Create post
   createPost: async (postData) => {
     set({ isCreatingPost: true });
     try {
-      // Map the data to match backend expectations
       const payload = {
         content: postData.text,
         image: postData.image
@@ -32,95 +32,57 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
+  // Share post
+  sharePost: async (postId, content = "") => {
+    set({ isSharingPost: true });
+    try {
+      const res = await axiosInstance.post(`/posts/${postId}/share`, { content });
+      set({ posts: [res.data, ...get().posts] });
+      toast.success("Post shared successfully!");
+      return res.data;
+    } catch (error) {
+      console.error("Error sharing post:", error);
+      toast.error(error.response?.data?.error || "Failed to share post");
+      throw error;
+    } finally {
+      set({ isSharingPost: false });
+    }
+  },
+
   // Delete post
   deletePost: async (postId) => {
-    console.log("🔥 DELETE POST CALLED");
-    console.log("Post ID to delete:", postId);
-    console.log("Current posts count:", get().posts.length);
-    
     set({ isDeletingPost: true });
-    
     try {
-      console.log("Making DELETE request to:", `/posts/${postId}`);
-      console.log("Using axios instance:", axiosInstance.defaults);
-      
       const response = await axiosInstance.delete(`/posts/${postId}`);
-      console.log("✅ Delete response status:", response.status);
-      console.log("✅ Delete response data:", response.data);
-      
       const currentPosts = get().posts;
       const filteredPosts = currentPosts.filter(post => post._id !== postId);
-      console.log("Posts before filter:", currentPosts.length);
-      console.log("Posts after filter:", filteredPosts.length);
       
-      set({ 
-        posts: filteredPosts
-      });
-      
-      console.log("✅ Post removed from state");
+      set({ posts: filteredPosts });
       toast.success("Post deleted successfully!");
       return response.data;
     } catch (error) {
-      console.error("❌ DELETE ERROR:", error);
-      console.error("❌ Error message:", error.message);
-      console.error("❌ Error response:", error.response);
-      console.error("❌ Error response data:", error.response?.data);
-      console.error("❌ Error status:", error.response?.status);
-      console.error("❌ Error config:", error.config);
-      
-      // More detailed error logging
-      if (error.response) {
-        console.error("❌ Response error:", {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
-          headers: error.response.headers
-        });
-      } else if (error.request) {
-        console.error("❌ Request error:", error.request);
-      } else {
-        console.error("❌ General error:", error.message);
-      }
-      
-      toast.error(
-        error.response?.data?.message || 
-        error.response?.data?.error || 
-        `Failed to delete post: ${error.message}`
-      );
+      console.error("Error deleting post:", error);
+      toast.error(error.response?.data?.error || "Failed to delete post");
       throw error;
     } finally {
-      console.log("🔚 Delete operation finished");
       set({ isDeletingPost: false });
     }
   },
 
-  // Get feed posts - Fixed endpoint
+  // Get feed posts
   getFeedPosts: async (page = 1) => {
-    console.log("Getting feed posts...");
     set({ isPostsLoading: true });
     try {
-      // Use the correct endpoint that exists in your backend
       const res = await axiosInstance.get("/posts");
-      console.log("Feed posts response:", res.data);
       
-      // Transform posts to match frontend expectations
-      const transformedPosts = res.data.map(post => {
-        console.log("Transforming post:", post._id, "Author:", post.author);
-        return {
-          ...post,
-          // Map backend fields to frontend expectations
-          content: {
-            text: post.content,
-            image: post.image
-          },
-          isLiked: post.likes?.some(like => like === useAuthStore.getState().authUser?._id) || false,
-          likesCount: post.likes?.length || 0,
-          commentsCount: post.comments?.length || 0,
-          sharesCount: 0 // Add default share count since backend doesn't have this yet
-        };
-      });
+      const transformedPosts = res.data.map(post => ({
+        ...post,
+        isLiked: post.likes?.includes(useAuthStore.getState().authUser?._id) || false,
+        likesCount: post.likes?.length || 0,
+        commentsCount: post.comments?.length || 0,
+        sharesCount: post.shares?.length || 0
+      }));
       
-      console.log("Transformed posts:", transformedPosts);
       set({ posts: transformedPosts });
     } catch (error) {
       console.error("Error getting feed posts:", error);
@@ -130,7 +92,7 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
-  // Toggle like
+  // Toggle like on post
   toggleLike: async (postId) => {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/like`);
@@ -142,6 +104,9 @@ export const usePostStore = create((set, get) => ({
                 ...post,
                 isLiked: res.data.isLiked,
                 likesCount: res.data.likes,
+                likes: res.data.isLiked 
+                  ? [...(post.likes || []), useAuthStore.getState().authUser._id]
+                  : (post.likes || []).filter(id => id !== useAuthStore.getState().authUser._id)
               }
             : post
         ),
@@ -155,9 +120,7 @@ export const usePostStore = create((set, get) => ({
   // Add comment
   addComment: async (postId, content) => {
     try {
-      const res = await axiosInstance.post(`/posts/${postId}/comment`, {
-        content,
-      });
+      const res = await axiosInstance.post(`/posts/${postId}/comment`, { content });
 
       set({
         posts: get().posts.map(post =>
@@ -179,19 +142,101 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
-  // Share post - Note: Backend doesn't implement sharing yet
-  sharePost: async (postId, text = "") => {
+  // Like comment
+  likeComment: async (postId, commentId) => {
     try {
-      // This endpoint doesn't exist in your backend yet
-      // const res = await axiosInstance.post(`/posts/${postId}/share`, { text });
-      // set({ posts: [res.data, ...get().posts] });
+      const res = await axiosInstance.post(`/posts/${postId}/comment/${commentId}/like`);
       
-      toast.error("Share functionality not implemented yet");
-      throw new Error("Share functionality not implemented");
+      set({
+        posts: get().posts.map(post =>
+          post._id === postId
+            ? {
+                ...post,
+                comments: post.comments.map(comment =>
+                  comment._id === commentId
+                    ? {
+                        ...comment,
+                        likes: res.data.isLiked 
+                          ? [...(comment.likes || []), useAuthStore.getState().authUser._id]
+                          : (comment.likes || []).filter(id => id !== useAuthStore.getState().authUser._id)
+                      }
+                    : comment
+                )
+              }
+            : post
+        ),
+      });
     } catch (error) {
-      console.error("Error sharing post:", error);
-      toast.error("Share functionality not available yet");
+      console.error("Error liking comment:", error);
+      toast.error(error.response?.data?.error || "Failed to like comment");
+    }
+  },
+
+  // Reply to comment
+  replyToComment: async (postId, commentId, content) => {
+    try {
+      const res = await axiosInstance.post(`/posts/${postId}/comment/${commentId}/reply`, { content });
+
+      set({
+        posts: get().posts.map(post =>
+          post._id === postId
+            ? {
+                ...post,
+                comments: post.comments.map(comment =>
+                  comment._id === commentId
+                    ? {
+                        ...comment,
+                        replies: [...(comment.replies || []), res.data]
+                      }
+                    : comment
+                )
+              }
+            : post
+        ),
+      });
+
+      return res.data;
+    } catch (error) {
+      console.error("Error replying to comment:", error);
+      toast.error(error.response?.data?.error || "Failed to reply");
       throw error;
+    }
+  },
+
+  // Like reply
+  likeReply: async (postId, commentId, replyId) => {
+    try {
+      const res = await axiosInstance.post(`/posts/${postId}/comment/${commentId}/reply/${replyId}/like`);
+      
+      set({
+        posts: get().posts.map(post =>
+          post._id === postId
+            ? {
+                ...post,
+                comments: post.comments.map(comment =>
+                  comment._id === commentId
+                    ? {
+                        ...comment,
+                        replies: comment.replies.map(reply =>
+                          reply._id === replyId
+                            ? {
+                                ...reply,
+                                likes: res.data.isLiked 
+                                  ? [...(reply.likes || []), useAuthStore.getState().authUser._id]
+                                  : (reply.likes || []).filter(id => id !== useAuthStore.getState().authUser._id)
+                              }
+                            : reply
+                        )
+                      }
+                    : comment
+                )
+              }
+            : post
+        ),
+      });
+    } catch (error) {
+      console.error("Error liking reply:", error);
+      toast.error(error.response?.data?.error || "Failed to like reply");
     }
   },
 
@@ -201,17 +246,12 @@ export const usePostStore = create((set, get) => ({
     if (!socket) return;
 
     socket.on("newPost", (newPost) => {
-      // Transform new post to match frontend expectations
       const transformedPost = {
         ...newPost,
-        content: {
-          text: newPost.content,
-          image: newPost.image
-        },
         isLiked: false,
         likesCount: newPost.likes?.length || 0,
         commentsCount: newPost.comments?.length || 0,
-        sharesCount: 0
+        sharesCount: newPost.shares?.length || 0
       };
       
       set({ posts: [transformedPost, ...get().posts] });
@@ -239,6 +279,67 @@ export const usePostStore = create((set, get) => ({
       });
     });
 
+    socket.on("newReply", (update) => {
+      set({
+        posts: get().posts.map(post =>
+          post._id === update.postId
+            ? {
+                ...post,
+                comments: post.comments.map(comment =>
+                  comment._id === update.commentId
+                    ? {
+                        ...comment,
+                        replies: [...(comment.replies || []), update.reply]
+                      }
+                    : comment
+                )
+              }
+            : post
+        ),
+      });
+    });
+
+    socket.on("commentUpdate", (update) => {
+      set({
+        posts: get().posts.map(post =>
+          post._id === update.postId
+            ? {
+                ...post,
+                comments: post.comments.map(comment =>
+                  comment._id === update.commentId
+                    ? { ...comment, likes: update.likes, isLiked: update.isLiked }
+                    : comment
+                )
+              }
+            : post
+        ),
+      });
+    });
+
+    socket.on("replyUpdate", (update) => {
+      set({
+        posts: get().posts.map(post =>
+          post._id === update.postId
+            ? {
+                ...post,
+                comments: post.comments.map(comment =>
+                  comment._id === update.commentId
+                    ? {
+                        ...comment,
+                        replies: comment.replies.map(reply =>
+                          reply._id === update.replyId
+                            ? { ...reply, likes: update.likes, isLiked: update.isLiked }
+                            : reply
+                        )
+                      }
+                    : comment
+                )
+              }
+            : post
+        ),
+      });
+    });
+
     socket.on("postDeleted", (update) => {
       set({
         posts: get().posts.filter(post => post._id !== update.postId),
@@ -253,6 +354,9 @@ export const usePostStore = create((set, get) => ({
       socket.off("newPost");
       socket.off("postUpdate");
       socket.off("newComment");
+      socket.off("newReply");
+      socket.off("commentUpdate");
+      socket.off("replyUpdate");
       socket.off("postDeleted");
     }
   },
