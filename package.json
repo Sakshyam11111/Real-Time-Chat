@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd realtimechat && npm run dev",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd realtimechat && npm run build",
-    "build": "npm run build:backend && npm run build:realtimechat",
-    "start:backend": "cd backend && npm start",
-    "preview:frontend": "cd realtimechat && npm run preview"
+  "dev:backend": "cd backend && npm run dev",
+  "dev:frontend": "cd realtimechat && npm run dev",
+  "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+  "build:backend": "cd backend && npm run build",
+  "build:frontend": "cd realtimechat && npm run build",
+  "build": "npm run build:backend && npm run build:frontend",
+  "start:backend": "cd backend && npm start",
+  "preview:frontend": "cd realtimechat && npm run preview"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
