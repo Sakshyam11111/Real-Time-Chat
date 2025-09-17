@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "build:backend": "cd backend && npm run build",
-    "build:realtimechat": "cd realtimechat && npm run build",
-    "build": "npm run build:backend && npm run build:realtimechat"
+    "build": "babel src -d dist"
   },
   "keywords": [],
   "author": "",
