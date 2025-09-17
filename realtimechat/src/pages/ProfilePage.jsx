@@ -13,12 +13,19 @@ const ProfilePage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
 
+  // Reset selectedImage when authUser changes (after profile update)
+  useEffect(() => {
+    if (authUser?.profilePic) {
+      setSelectedImage(null); // Reset so we show the updated profile pic
+    }
+  }, [authUser?.profilePic]);
+
   useEffect(() => {
     if (authUser?._id) {
       getUserStories(authUser._id);
       getFeedPosts();
     }
-  }, [getUserStories, getFeedPosts, authUser]);
+  }, [getUserStories, getFeedPosts, authUser?._id]); // Added authUser._id dependency
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -28,7 +35,12 @@ const ProfilePage = () => {
     reader.onload = async () => {
       const base64Image = reader.result;
       setSelectedImage(base64Image);
-      await updateProfile({ profilePic: base64Image });
+      try {
+        await updateProfile({ profilePic: base64Image });
+      } catch (error) {
+        // Error is handled in the store
+        setSelectedImage(null); // Reset on error
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -62,21 +74,30 @@ const ProfilePage = () => {
   const expiredStories = userStories.filter((story) => story.isExpired);
   const userPosts = posts.filter((post) => post.author._id === authUser?._id);
 
+  // Show loading state if authUser is not available
+  if (!authUser) {
+    return (
+      <div className="min-h-screen bg-base-200 pt-20 flex items-center justify-center">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-200 pt-20">
-      <div className="max-w-2xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4">
         {/* Profile Header */}
         <div className="bg-base-100 rounded-lg p-6 mb-6 shadow-sm">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="relative">
               <img
-                src={selectedImage || authUser?.profilePic || "/avatar.png"}
+                src={selectedImage || authUser.profilePic || "/avatar.png"}
                 alt="Profile"
                 className="w-32 h-32 rounded-full object-cover border-4 border-primary"
               />
               <label
                 htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 bg-primary hover:bg-primary-focus text-white p-2 rounded-full cursor-pointer transition-colors"
+                className={`absolute bottom-0 right-0 bg-primary hover:bg-primary-focus text-white p-2 rounded-full cursor-pointer transition-colors ${isUpdatingProfile ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Camera className="w-4 h-4" />
                 <input
@@ -88,23 +109,28 @@ const ProfilePage = () => {
                   disabled={isUpdatingProfile}
                 />
               </label>
+              {isUpdatingProfile && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full">
+                  <div className="loading loading-spinner loading-sm"></div>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold mb-2">{authUser?.fullName}</h1>
+              <h1 className="text-3xl font-bold mb-2">{authUser.fullName}</h1>
               
               {/* Username */}
-              {authUser?.username && (
+              {authUser.username && (
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                   <AtSign className="w-4 h-4 text-primary" />
                   <p className="text-primary font-medium">@{authUser.username}</p>
                 </div>
               )}
 
-              <p className="text-base-content/60 mb-2">{authUser?.email}</p>
+              <p className="text-base-content/60 mb-2">{authUser.email}</p>
 
               {/* Bio */}
-              {authUser?.bio && (
+              {authUser.bio && (
                 <div className="flex items-start justify-center md:justify-start gap-2 mb-4">
                   <FileText className="w-4 h-4 text-base-content/60 mt-0.5" />
                   <p className="text-base-content/80">{authUser.bio}</p>
@@ -112,7 +138,7 @@ const ProfilePage = () => {
               )}
 
               {/* Gender */}
-              {authUser?.gender && authUser.gender !== 'prefer-not-to-say' && (
+              {authUser.gender && authUser.gender !== 'prefer-not-to-say' && (
                 <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
                   <Users className="w-4 h-4 text-base-content/60" />
                   <p className="text-base-content/60 capitalize">{authUser.gender}</p>
@@ -142,7 +168,7 @@ const ProfilePage = () => {
 
               <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-base-content/60">
                 <Calendar className="w-4 h-4" />
-                <span>Member since {new Date(authUser?.createdAt).toLocaleDateString()}</span>
+                <span>Member since {new Date(authUser.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
