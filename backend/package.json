@@ -4,7 +4,10 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "build:backend": "cd backend && npm run build",
+    "build:realtimechat": "cd realtimechat && npm run build",
+    "build": "npm run build:backend && npm run build:realtimechat"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +27,9 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@babel/cli": "^7.28.3",
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
     "nodemon": "^3.1.9"
   }
 }
