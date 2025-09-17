@@ -1,31 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "realtimechat/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    },
-    {
-      "src": "backend/src/index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/src/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/realtimechat/dist/$1"
-    }
-  ],
-  "functions": {
-    "backend/src/index.js": {
-      "maxDuration": 30
-    }
-  }
+  "buildCommand": "cd realtimechat && npm run build",
+  "outputDirectory": "realtimechat/dist",
+  "installCommand": "cd realtimechat && npm install",
+  "framework": "vite"
 }
