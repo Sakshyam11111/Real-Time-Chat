@@ -1,16 +1,14 @@
 {
   "name": "realtime-chat-app",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-  "dev:backend": "cd backend && npm run dev",
-  "dev:frontend": "cd realtimechat && npm run dev",
-  "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-  "build:backend": "cd backend && npm run build",
-  "build:frontend": "cd realtimechat && npm run build",
-  "build": "npm run build:backend && npm run build:frontend",
-  "start:backend": "cd backend && npm start",
-  "preview:frontend": "cd realtimechat && npm run preview"
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm install && npm run build",
+    "build:frontend": "cd realtimechat && npm install && npm run build",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd realtimechat && npm run dev"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
