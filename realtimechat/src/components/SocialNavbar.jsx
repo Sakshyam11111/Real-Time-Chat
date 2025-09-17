@@ -1,5 +1,5 @@
 import React from "react";
-import { Home, MessageSquare, User, Search, Bell } from "lucide-react";
+import { Home, MessageSquare, User, Search, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const SocialNavbar = () => {
@@ -21,16 +21,6 @@ const SocialNavbar = () => {
         </Link>
 
         <Link
-          to="/search"
-          className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-            isActive("/search") ? "text-primary bg-primary/10" : "text-base-content/60"
-          }`}
-        >
-          <Search className="w-5 h-5" />
-          <span className="text-xs">Search</span>
-        </Link>
-
-        <Link
           to="/"
           className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
             isActive("/") ? "text-primary bg-primary/10" : "text-base-content/60"
@@ -41,13 +31,13 @@ const SocialNavbar = () => {
         </Link>
 
         <Link
-          to="/notifications"
+          to="/settings"
           className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${
-            isActive("/notifications") ? "text-primary bg-primary/10" : "text-base-content/60"
+            isActive("/settings") ? "text-primary bg-primary/10" : "text-base-content/60"
           }`}
         >
-          <Bell className="w-5 h-5" />
-          <span className="text-xs">Alerts</span>
+          <Settings className="w-5 h-5" />
+          <span className="text-xs">Settings</span>
         </Link>
 
         <Link

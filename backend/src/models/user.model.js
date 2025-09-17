@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
         username: {
             type: String,
             unique: true,
-            sparse: true, // Allows null values while maintaining uniqueness for non-null values
+            sparse: true, 
             trim: true,
             minlength: 3,
             maxlength: 20,

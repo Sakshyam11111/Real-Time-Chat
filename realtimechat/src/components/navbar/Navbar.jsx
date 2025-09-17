@@ -2,11 +2,11 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Home, Settings, LogOut, User } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
-import { MessageCircle } from 'lucide-react'; // Add this to your existing imports
+import { MessageCircle } from 'lucide-react'; 
 
 const Navbar = () => {
   const { logout, authUser } = useAuthStore();
-  const navigate = useNavigate(); // Add this line
+  const navigate = useNavigate(); 
 
   const handleLogout = () => {
     logout();
@@ -16,15 +16,12 @@ const Navbar = () => {
     navigate('/social');
   };
 
-  // Add this function
   const handleChatClick = () => {
     navigate('/');
   };
 
-  // ... rest of your component
-
   return (
-    <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
+    <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg">
       <div className="container mx-auto px-4 h-16">
         <div className="flex items-center justify-between h-full">
           {/* Logo */}

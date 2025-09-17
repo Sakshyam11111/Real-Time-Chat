@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { Heart, MessageCircle, Share, MoreHorizontal, Send, X, Trash2, Edit, Smile, Reply } from "lucide-react";
+import { Heart, MessageCircle, Share, MoreHorizontal, Send, X, Trash2, Edit, Smile, Reply, ExternalLink, Copy, Download } from "lucide-react";
 import { usePostStore } from "../store/usePostStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
+import { useSocialShare } from "../lib/sharingUtils";
+import SocialShareModal from "./SocialShareModal";
 
 const EMOJIS = [
   "😊", "😂", "❤️", "👍", "🔥", "💯", "🎉", "😍", "🤔", "😎",
@@ -13,6 +15,7 @@ const PostCard = ({ post }) => {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSocialShareModal, setSocialShareModal] = useState(false);
   const [shareText, setShareText] = useState("");
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -23,6 +26,7 @@ const PostCard = ({ post }) => {
   
   const { toggleLike, addComment, sharePost, deletePost, likeComment, replyToComment, likeReply } = usePostStore();
   const { authUser } = useAuthStore();
+  const socialShare = useSocialShare(post);
 
   const handleLike = () => {
     toggleLike(post._id);
@@ -63,7 +67,7 @@ const PostCard = ({ post }) => {
     likeReply(post._id, commentId, replyId);
   };
 
-  const handleShare = async (e) => {
+  const handleInternalShare = async (e) => {
     e.preventDefault();
     try {
       await sharePost(post._id, shareText.trim());
@@ -114,8 +118,6 @@ const PostCard = ({ post }) => {
   };
 
   const isAuthor = authUser?._id === post.author?._id;
-
-  // Check if this is a shared post
   const isSharedPost = post.isShared && post.originalPost;
 
   return (
@@ -157,6 +159,32 @@ const PostCard = ({ post }) => {
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete Post
+                  </button>
+                )}
+                <button
+                  onClick={() => setSocialShareModal(true)}
+                  className="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center gap-2"
+                  type="button"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Share Externally
+                </button>
+                <button
+                  onClick={socialShare.copyToClipboard}
+                  className="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center gap-2"
+                  type="button"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy Link
+                </button>
+                {post.image && (
+                  <button
+                    onClick={socialShare.downloadImage}
+                    className="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center gap-2"
+                    type="button"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Image
                   </button>
                 )}
                 <button
@@ -261,13 +289,45 @@ const PostCard = ({ post }) => {
           <MessageCircle className="w-4 h-4 mr-2" />
           Comment
         </button>
-        <button
-          onClick={() => setShowShareModal(true)}
-          className="btn btn-ghost btn-sm flex-1"
-        >
-          <Share className="w-4 h-4 mr-2" />
-          Share
-        </button>
+        
+        {/* Share Button with Dropdown */}
+        <div className="relative flex-1">
+          <div className="dropdown dropdown-top dropdown-end w-full">
+            <button
+              tabIndex={0}
+              className="btn btn-ghost btn-sm w-full"
+            >
+              <Share className="w-4 h-4 mr-2" />
+              Share
+            </button>
+            <ul tabIndex={0} className="dropdown-content z-10 menu p-2 shadow bg-base-100 rounded-box w-56 mb-2">
+              <li>
+                <a onClick={() => setSocialShareModal(true)} className="flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4" />
+                  Share to social media
+                </a>
+              </li>
+              <li>
+                <a onClick={() => setShowShareModal(true)} className="flex items-center gap-2">
+                  <Share className="w-4 h-4" />
+                  Share on platform
+                </a>
+              </li>
+              <li>
+                <a onClick={socialShare.handleNativeShare} className="flex items-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Native share
+                </a>
+              </li>
+              <li>
+                <a onClick={socialShare.copyToClipboard} className="flex items-center gap-2">
+                  <Copy className="w-4 h-4" />
+                  {socialShare.copySuccess ? 'Copied!' : 'Copy link'}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Comments Section */}
@@ -468,7 +528,7 @@ const PostCard = ({ post }) => {
         </div>
       )}
 
-      {/* Share Modal */}
+      {/* Internal Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-base-100 rounded-lg w-full max-w-md">
@@ -479,7 +539,7 @@ const PostCard = ({ post }) => {
               </button>
             </div>
 
-            <form onSubmit={handleShare} className="p-4 space-y-4">
+            <form onSubmit={handleInternalShare} className="p-4 space-y-4">
               <textarea
                 className="textarea textarea-bordered w-full min-h-[100px] resize-none"
                 placeholder="Add your thoughts about this post..."
@@ -535,6 +595,13 @@ const PostCard = ({ post }) => {
           </div>
         </div>
       )}
+
+      {/* Social Share Modal */}
+      <SocialShareModal 
+        isOpen={showSocialShareModal}
+        onClose={() => setSocialShareModal(false)}
+        post={post}
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
