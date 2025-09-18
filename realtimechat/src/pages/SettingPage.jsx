@@ -5,7 +5,6 @@ import { useAuthStore } from "../store/useAuthStore";
 import { Send, User, Save, X, Camera, AtSign, FileText, Users, Palette, Eye, HelpCircle, ChevronRight, Shield, UserCheck, HeadphonesIcon, Globe, Search, Check } from "lucide-react";
 import toast from "react-hot-toast";
 
-// Language options with their native names
 const LANGUAGES = [
   { code: 'en', name: 'English', native: 'English' },
   { code: 'af', name: 'Afrikaans', native: 'Afrikaans' },
@@ -60,96 +59,6 @@ const PREVIEW_MESSAGES = [
   { id: 2, content: "I'm doing great! Just working on some new features.", isSent: true },
 ];
 
-const LanguageModal = ({ isOpen, onClose, currentLanguage, onLanguageChange }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredLanguages, setFilteredLanguages] = useState(LANGUAGES);
-
-  useEffect(() => {
-    console.log("LANGUAGES:", LANGUAGES); // Debug LANGUAGES array
-    if (searchQuery.trim() === '') {
-      setFilteredLanguages(LANGUAGES);
-    } else {
-      const filtered = LANGUAGES.filter(lang =>
-        lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lang.native.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredLanguages(filtered);
-    }
-  }, [searchQuery]);
-
-  // Close modal on Escape key
-  useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4" role="dialog" aria-label="Language selection modal">
-      <div className="bg-base-100 rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-base-300">
-          <h2 className="text-lg font-semibold">Language preferences</h2>
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-sm btn-circle"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Description */}
-        <div className="px-4 py-3 border-b border-base-300">
-          <h3 className="font-medium mb-1">App language</h3>
-          <p className="text-sm text-base-content/70">
-            See buttons, titles, and other texts in your preferred language.
-          </p>
-        </div>
-
-        {/* Search */}
-        <div className="p-4 border-b border-base-300">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/60" />
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input input-bordered w-full pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Language List */}
-        <div className="flex-1 overflow-y-auto">
-          {filteredLanguages.map((language) => (
-            <button
-              key={language.code}
-              onClick={() => onLanguageChange(language.code)}
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-base-200 text-left transition-colors"
-            >
-              <span className="font-medium">{language.native}</span>
-              {currentLanguage === language.code && (
-                <Check className="w-5 h-5 text-primary" />
-              )}
-            </button>
-          ))}
-          
-          {filteredLanguages.length === 0 && (
-            <div className="p-4 text-center text-base-content/60">
-              No languages found matching your search.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const SettingsPage = () => {
   const { theme, setTheme } = useThemeStore();
   const { authUser, updateProfile, isUpdatingProfile } = useAuthStore();
@@ -158,6 +67,8 @@ const SettingsPage = () => {
   const [isEditingLanguage, setIsEditingLanguage] = useState(false);
   const [showHelpOptions, setShowHelpOptions] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredLanguages, setFilteredLanguages] = useState(LANGUAGES);
   const [profile, setProfile] = useState({
     fullName: '',
     username: '',
@@ -168,18 +79,15 @@ const SettingsPage = () => {
   const [previewImage, setPreviewImage] = useState("");
   const [tempTheme, setTempTheme] = useState(theme);
 
-  // Debug LANGUAGES array on mount
   useEffect(() => {
     console.log("LANGUAGES array:", LANGUAGES);
   }, []);
 
-  // Load saved language from localStorage
   useEffect(() => {
     const savedLanguage = localStorage.getItem('app-language') || 'en';
     setCurrentLanguage(savedLanguage);
   }, []);
 
-  // Initialize profile data when authUser changes or component mounts
   useEffect(() => {
     if (authUser) {
       setProfile({
@@ -192,10 +100,21 @@ const SettingsPage = () => {
     }
   }, [authUser]);
 
-  // Update temp theme when actual theme changes
   useEffect(() => {
     setTempTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredLanguages(LANGUAGES);
+    } else {
+      const filtered = LANGUAGES.filter(lang =>
+        lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lang.native.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredLanguages(filtered);
+    }
+  }, [searchQuery]);
 
   const getCurrentLanguageName = () => {
     const language = LANGUAGES.find(lang => lang.code === currentLanguage);
@@ -205,10 +124,8 @@ const SettingsPage = () => {
   const handleLanguageChange = (languageCode) => {
     setCurrentLanguage(languageCode);
     localStorage.setItem('app-language', languageCode);
-    
     const selectedLanguage = LANGUAGES.find(lang => lang.code === languageCode);
     toast.success(`Language changed to ${selectedLanguage.native}`);
-    
     setIsEditingLanguage(false);
   };
 
@@ -525,17 +442,73 @@ const SettingsPage = () => {
                   <p className="text-sm text-base-content/70">Choose your preferred language</p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  console.log("Change Language clicked");
-                  setIsEditingLanguage(true);
-                }}
-                className="btn btn-primary gap-2"
-              >
-                <Globe className="w-4 h-4" />
-                Change Language
-              </button>
+              {!isEditingLanguage && (
+                <button
+                  onClick={() => setIsEditingLanguage(true)}
+                  className="btn btn-primary gap-2"
+                >
+                  <Globe className="w-4 h-4" />
+                  Change Language
+                </button>
+              )}
             </div>
+
+            {isEditingLanguage && (
+              <div className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">App language</span>
+                  </label>
+                  <p className="text-sm text-base-content/70">
+                    See buttons, titles, and other texts in your preferred language.
+                  </p>
+                </div>
+
+                <div className="form-control">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/60" />
+                    <input
+                      type="text"
+                      placeholder="Search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="input input-bordered w-full pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-h-[200px] overflow-y-auto">
+                  {filteredLanguages.map((language) => (
+                    <button
+                      key={language.code}
+                      onClick={() => handleLanguageChange(language.code)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-base-200 text-left transition-colors"
+                    >
+                      <span className="font-medium">{language.native}</span>
+                      {currentLanguage === language.code && (
+                        <Check className="w-5 h-5 text-primary" />
+                      )}
+                    </button>
+                  ))}
+                  {filteredLanguages.length === 0 && (
+                    <div className="p-4 text-center text-base-content/60">
+                      No languages found matching your search.
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingLanguage(false)}
+                    className="btn btn-ghost gap-2 flex-1"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -753,14 +726,6 @@ const SettingsPage = () => {
             )}
           </div>
         </div>
-
-        {/* Language Modal */}
-        <LanguageModal
-          isOpen={isEditingLanguage}
-          onClose={() => setIsEditingLanguage(false)}
-          currentLanguage={currentLanguage}
-          onLanguageChange={handleLanguageChange}
-        />
       </div>
     </div>
   );
