@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd realtimechat && npm run build",
-  "outputDirectory": "realtimechat/dist",
-  "installCommand": "cd realtimechat && npm install",
-  "framework": "vite"
-}

@@ -2,20 +2,162 @@ import React, { useState, useEffect } from 'react';
 import { THEMES } from "../constants";
 import { useThemeStore } from "../store/useThemeStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { Send, User, Save, X, Camera, AtSign, FileText, Users, Palette, Eye, HelpCircle, ChevronRight, Shield, UserCheck, HeadphonesIcon } from "lucide-react";
+import { Send, User, Save, X, Camera, AtSign, FileText, Users, Palette, Eye, HelpCircle, ChevronRight, Shield, UserCheck, HeadphonesIcon, Globe, Search, Check } from "lucide-react";
 import toast from "react-hot-toast";
+
+// Language options with their native names
+const LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English' },
+  { code: 'af', name: 'Afrikaans', native: 'Afrikaans' },
+  { code: 'ar', name: 'Arabic', native: 'العربية' },
+  { code: 'cs', name: 'Czech', native: 'Čeština' },
+  { code: 'da', name: 'Danish', native: 'Dansk' },
+  { code: 'de', name: 'German', native: 'Deutsch' },
+  { code: 'el', name: 'Greek', native: 'Ελληνικά' },
+  { code: 'en-gb', name: 'English (UK)', native: 'English (UK)' },
+  { code: 'es', name: 'Spanish (Spain)', native: 'Español (España)' },
+  { code: 'es-mx', name: 'Spanish', native: 'Español' },
+  { code: 'fa', name: 'Persian', native: 'فارسی' },
+  { code: 'fi', name: 'Finnish', native: 'Suomi' },
+  { code: 'fr', name: 'French', native: 'Français' },
+  { code: 'he', name: 'Hebrew', native: 'עברית' },
+  { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia' },
+  { code: 'it', name: 'Italian', native: 'Italiano' },
+  { code: 'ja', name: 'Japanese', native: '日本語' },
+  { code: 'ko', name: 'Korean', native: '한국어' },
+  { code: 'ms', name: 'Malay', native: 'Bahasa Melayu' },
+  { code: 'no', name: 'Norwegian', native: 'Norsk' },
+  { code: 'nl', name: 'Dutch', native: 'Nederlands' },
+  { code: 'pl', name: 'Polish', native: 'Polski' },
+  { code: 'pt-br', name: 'Portuguese (Brazil)', native: 'Português (Brasil)' },
+  { code: 'pt', name: 'Portuguese (Portugal)', native: 'Português (Portugal)' },
+  { code: 'ru', name: 'Russian', native: 'Русский' },
+  { code: 'sv', name: 'Swedish', native: 'Svenska' },
+  { code: 'th', name: 'Thai', native: 'ภาษาไทย' },
+  { code: 'tl', name: 'Filipino', native: 'Filipino' },
+  { code: 'tr', name: 'Turkish', native: 'Türkçe' },
+  { code: 'zh-cn', name: 'Chinese (Simplified)', native: '中文(简体)' },
+  { code: 'zh-tw', name: 'Chinese (Traditional)', native: '中文(台灣)' },
+  { code: 'bn', name: 'Bengali', native: 'বাংলা' },
+  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
+  { code: 'hr', name: 'Croatian', native: 'Hrvatski' },
+  { code: 'hu', name: 'Hungarian', native: 'Magyar' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు' },
+  { code: 'ur', name: 'Urdu', native: 'اردو' },
+  { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt' },
+  { code: 'zh-hk', name: 'Chinese (Hong Kong)', native: '中文(香港)' },
+  { code: 'bg', name: 'Bulgarian', native: 'Български' },
+  { code: 'fr-ca', name: 'French (Canada)', native: 'Français (Canada)' },
+  { code: 'ro', name: 'Romanian', native: 'Română' },
+  { code: 'sr', name: 'Serbian', native: 'Српски' },
+  { code: 'uk', name: 'Ukrainian', native: 'Українська' }
+];
 
 const PREVIEW_MESSAGES = [
   { id: 1, content: "Hey! How's it going?", isSent: false },
   { id: 2, content: "I'm doing great! Just working on some new features.", isSent: true },
 ];
 
+const LanguageModal = ({ isOpen, onClose, currentLanguage, onLanguageChange }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredLanguages, setFilteredLanguages] = useState(LANGUAGES);
+
+  useEffect(() => {
+    console.log("LANGUAGES:", LANGUAGES); // Debug LANGUAGES array
+    if (searchQuery.trim() === '') {
+      setFilteredLanguages(LANGUAGES);
+    } else {
+      const filtered = LANGUAGES.filter(lang =>
+        lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lang.native.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredLanguages(filtered);
+    }
+  }, [searchQuery]);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4" role="dialog" aria-label="Language selection modal">
+      <div className="bg-base-100 rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-base-300">
+          <h2 className="text-lg font-semibold">Language preferences</h2>
+          <button
+            onClick={onClose}
+            className="btn btn-ghost btn-sm btn-circle"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Description */}
+        <div className="px-4 py-3 border-b border-base-300">
+          <h3 className="font-medium mb-1">App language</h3>
+          <p className="text-sm text-base-content/70">
+            See buttons, titles, and other texts in your preferred language.
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="p-4 border-b border-base-300">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/60" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input input-bordered w-full pl-10"
+            />
+          </div>
+        </div>
+
+        {/* Language List */}
+        <div className="flex-1 overflow-y-auto">
+          {filteredLanguages.map((language) => (
+            <button
+              key={language.code}
+              onClick={() => onLanguageChange(language.code)}
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-base-200 text-left transition-colors"
+            >
+              <span className="font-medium">{language.native}</span>
+              {currentLanguage === language.code && (
+                <Check className="w-5 h-5 text-primary" />
+              )}
+            </button>
+          ))}
+          
+          {filteredLanguages.length === 0 && (
+            <div className="p-4 text-center text-base-content/60">
+              No languages found matching your search.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SettingsPage = () => {
   const { theme, setTheme } = useThemeStore();
   const { authUser, updateProfile, isUpdatingProfile } = useAuthStore();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTheme, setIsEditingTheme] = useState(false);
+  const [isEditingLanguage, setIsEditingLanguage] = useState(false);
   const [showHelpOptions, setShowHelpOptions] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
   const [profile, setProfile] = useState({
     fullName: '',
     username: '',
@@ -25,6 +167,17 @@ const SettingsPage = () => {
   const [profilePic, setProfilePic] = useState(null);
   const [previewImage, setPreviewImage] = useState("");
   const [tempTheme, setTempTheme] = useState(theme);
+
+  // Debug LANGUAGES array on mount
+  useEffect(() => {
+    console.log("LANGUAGES array:", LANGUAGES);
+  }, []);
+
+  // Load saved language from localStorage
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('app-language') || 'en';
+    setCurrentLanguage(savedLanguage);
+  }, []);
 
   // Initialize profile data when authUser changes or component mounts
   useEffect(() => {
@@ -43,6 +196,21 @@ const SettingsPage = () => {
   useEffect(() => {
     setTempTheme(theme);
   }, [theme]);
+
+  const getCurrentLanguageName = () => {
+    const language = LANGUAGES.find(lang => lang.code === currentLanguage);
+    return language ? language.native : 'English';
+  };
+
+  const handleLanguageChange = (languageCode) => {
+    setCurrentLanguage(languageCode);
+    localStorage.setItem('app-language', languageCode);
+    
+    const selectedLanguage = LANGUAGES.find(lang => lang.code === languageCode);
+    toast.success(`Language changed to ${selectedLanguage.native}`);
+    
+    setIsEditingLanguage(false);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -121,6 +289,7 @@ const SettingsPage = () => {
       setIsEditingProfile(false);
       setProfilePic(null);
     } catch (error) {
+      toast.error(error.message || "Failed to update profile. Please try again.");
       console.error("Profile update error:", error);
     }
   };
@@ -144,7 +313,6 @@ const SettingsPage = () => {
     setTheme(tempTheme);
     toast.success("Theme updated successfully");
     setIsEditingTheme(false);
-    // Force a re-render by updating the document theme
     document.documentElement.setAttribute('data-theme', tempTheme);
   };
 
@@ -154,12 +322,9 @@ const SettingsPage = () => {
   };
 
   const handleHelpItemClick = (item) => {
-    // You can implement actual help functionality here
-    // For now, we'll just show a toast
     switch(item) {
       case 'help-center':
         toast.success("Opening Help Center...");
-        // window.open('/help-center', '_blank');
         break;
       case 'account-status':
         toast.success("Checking Account Status...");
@@ -175,7 +340,6 @@ const SettingsPage = () => {
     }
   };
 
-  // Show loading if authUser is not available
   if (!authUser) {
     return (
       <div className="h-screen container mx-auto px-4 pt-20 max-w-5xl flex items-center justify-center">
@@ -208,10 +372,8 @@ const SettingsPage = () => {
               )}
             </div>
 
-            {/* Edit Profile Form */}
             {isEditingProfile && (
               <form onSubmit={handleProfileSubmit} className="space-y-4">
-                {/* Profile Picture */}
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative">
                     <img
@@ -239,7 +401,6 @@ const SettingsPage = () => {
                   </p>
                 </div>
 
-                {/* Full Name */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-medium flex items-center gap-2">
@@ -260,7 +421,6 @@ const SettingsPage = () => {
                   />
                 </div>
 
-                {/* Username */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-medium flex items-center gap-2">
@@ -286,7 +446,6 @@ const SettingsPage = () => {
                   </label>
                 </div>
 
-                {/* Bio */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-medium flex items-center gap-2">
@@ -310,7 +469,6 @@ const SettingsPage = () => {
                   </label>
                 </div>
 
-                {/* Gender */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-medium flex items-center gap-2">
@@ -333,8 +491,8 @@ const SettingsPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary gap-2 flex-1"
                     disabled={isUpdatingProfile}
                   >
@@ -353,6 +511,31 @@ const SettingsPage = () => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+
+        {/* Language Section */}
+        <div className="bg-base-100 rounded-lg p-6 shadow-sm border border-base-200">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Globe className="w-6 h-6" />
+                <div>
+                  <h2 className="text-lg font-semibold">Language</h2>
+                  <p className="text-sm text-base-content/70">Choose your preferred language</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  console.log("Change Language clicked");
+                  setIsEditingLanguage(true);
+                }}
+                className="btn btn-primary gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                Change Language
+              </button>
+            </div>
           </div>
         </div>
 
@@ -377,7 +560,6 @@ const SettingsPage = () => {
               )}
             </div>
 
-            {/* Theme Selection Form */}
             {isEditingTheme && (
               <form onSubmit={handleThemeSubmit} className="space-y-4">
                 <div className="form-control">
@@ -411,7 +593,6 @@ const SettingsPage = () => {
                   </div>
                 </div>
 
-                {/* Theme Preview */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-medium flex items-center gap-2">
@@ -423,7 +604,6 @@ const SettingsPage = () => {
                     <div className="p-4 bg-base-200">
                       <div className="max-w-lg mx-auto">
                         <div className="bg-base-100 rounded-xl shadow-sm overflow-hidden">
-                          {/* Chat Header */}
                           <div className="px-4 py-3 border-b border-base-300 bg-base-100">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content font-medium">
@@ -436,7 +616,6 @@ const SettingsPage = () => {
                             </div>
                           </div>
 
-                          {/* Chat Messages */}
                           <div className="p-4 space-y-4 min-h-[200px] max-h-[200px] overflow-y-auto bg-base-100">
                             {PREVIEW_MESSAGES.map((message) => (
                               <div
@@ -463,7 +642,6 @@ const SettingsPage = () => {
                             ))}
                           </div>
 
-                          {/* Chat Input */}
                           <div className="p-4 border-t border-base-300 bg-base-100">
                             <div className="flex gap-2">
                               <input
@@ -485,8 +663,8 @@ const SettingsPage = () => {
                 </div>
 
                 <div className="flex gap-2">
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary gap-2 flex-1"
                   >
                     <Save className="w-4 h-4" />
@@ -526,11 +704,9 @@ const SettingsPage = () => {
               </button>
             </div>
 
-            {/* Help Options (shown when showHelpOptions is true) */}
             {showHelpOptions && (
               <div className="space-y-2">
-                {/* Help Center */}
-                <button 
+                <button
                   onClick={() => handleHelpItemClick('help-center')}
                   className="w-full flex items-center justify-between p-4 bg-base-50 hover:bg-base-200 rounded-lg transition-colors"
                 >
@@ -541,8 +717,7 @@ const SettingsPage = () => {
                   <ChevronRight className="w-4 h-4 text-base-content/60" />
                 </button>
 
-                {/* Account Status */}
-                <button 
+                <button
                   onClick={() => handleHelpItemClick('account-status')}
                   className="w-full flex items-center justify-between p-4 bg-base-50 hover:bg-base-200 rounded-lg transition-colors"
                 >
@@ -553,8 +728,7 @@ const SettingsPage = () => {
                   <ChevronRight className="w-4 h-4 text-base-content/60" />
                 </button>
 
-                {/* Privacy and Security Help */}
-                <button 
+                <button
                   onClick={() => handleHelpItemClick('privacy-security')}
                   className="w-full flex items-center justify-between p-4 bg-base-50 hover:bg-base-200 rounded-lg transition-colors"
                 >
@@ -565,8 +739,7 @@ const SettingsPage = () => {
                   <ChevronRight className="w-4 h-4 text-base-content/60" />
                 </button>
 
-                {/* Support Requests */}
-                <button 
+                <button
                   onClick={() => handleHelpItemClick('support-requests')}
                   className="w-full flex items-center justify-between p-4 bg-base-50 hover:bg-base-200 rounded-lg transition-colors"
                 >
@@ -580,6 +753,14 @@ const SettingsPage = () => {
             )}
           </div>
         </div>
+
+        {/* Language Modal */}
+        <LanguageModal
+          isOpen={isEditingLanguage}
+          onClose={() => setIsEditingLanguage(false)}
+          currentLanguage={currentLanguage}
+          onLanguageChange={handleLanguageChange}
+        />
       </div>
     </div>
   );
