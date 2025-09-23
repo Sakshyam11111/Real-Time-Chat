@@ -16,13 +16,19 @@ export const usePostStore = create((set, get) => ({
     try {
       const payload = {
         content: postData.text,
-        image: postData.image
+        image: postData.image,
       };
-      
+
       const res = await axiosInstance.post("/posts", payload);
-      set({ posts: [res.data, ...get().posts] });
+      const newPost = {
+        ...res.data,
+        likes: Array.isArray(res.data.likes) ? res.data.likes : [],
+        comments: Array.isArray(res.data.comments) ? res.data.comments : [],
+        shares: Array.isArray(res.data.shares) ? res.data.shares : [],
+      };
+      set({ posts: [newPost, ...get().posts] });
       toast.success("Post created successfully!");
-      return res.data;
+      return newPost;
     } catch (error) {
       console.error("Error creating post:", error);
       toast.error(error.response?.data?.message || "Failed to create post");
@@ -37,9 +43,15 @@ export const usePostStore = create((set, get) => ({
     set({ isSharingPost: true });
     try {
       const res = await axiosInstance.post(`/posts/${postId}/share`, { content });
-      set({ posts: [res.data, ...get().posts] });
+      const sharedPost = {
+        ...res.data,
+        likes: Array.isArray(res.data.likes) ? res.data.likes : [],
+        comments: Array.isArray(res.data.comments) ? res.data.comments : [],
+        shares: Array.isArray(res.data.shares) ? res.data.shares : [],
+      };
+      set({ posts: [sharedPost, ...get().posts] });
       toast.success("Post shared successfully!");
-      return res.data;
+      return sharedPost;
     } catch (error) {
       console.error("Error sharing post:", error);
       toast.error(error.response?.data?.error || "Failed to share post");
@@ -55,8 +67,8 @@ export const usePostStore = create((set, get) => ({
     try {
       const response = await axiosInstance.delete(`/posts/${postId}`);
       const currentPosts = get().posts;
-      const filteredPosts = currentPosts.filter(post => post._id !== postId);
-      
+      const filteredPosts = currentPosts.filter((post) => post._id !== postId);
+
       set({ posts: filteredPosts });
       toast.success("Post deleted successfully!");
       return response.data;
@@ -74,15 +86,29 @@ export const usePostStore = create((set, get) => ({
     set({ isPostsLoading: true });
     try {
       const res = await axiosInstance.get("/posts");
-      
-      const transformedPosts = res.data.map(post => ({
+      const authUserId = useAuthStore.getState().authUser?._id;
+      const transformedPosts = res.data.map((post) => ({
         ...post,
-        isLiked: post.likes?.includes(useAuthStore.getState().authUser?._id) || false,
-        likesCount: post.likes?.length || 0,
-        commentsCount: post.comments?.length || 0,
-        sharesCount: post.shares?.length || 0
+        likes: Array.isArray(post.likes) ? post.likes : [],
+        comments: Array.isArray(post.comments) ? post.comments : [],
+        shares: Array.isArray(post.shares) ? post.shares : [],
+        isLiked: Array.isArray(post.likes) && post.likes.includes(authUserId) || false,
+        likesCount: Array.isArray(post.likes) ? post.likes.length : 0,
+        commentsCount: Array.isArray(post.comments) ? post.comments.length : 0,
+        sharesCount: Array.isArray(post.shares) ? post.shares.length : 0,
+        comments: Array.isArray(post.comments)
+          ? post.comments.map((comment) => ({
+              ...comment,
+              likes: Array.isArray(comment.likes) ? comment.likes : [],
+              replies: Array.isArray(comment.replies)
+                ? comment.replies.map((reply) => ({
+                    ...reply,
+                    likes: Array.isArray(reply.likes) ? reply.likes : [],
+                  }))
+                : [],
+            }))
+          : [],
       }));
-      
       set({ posts: transformedPosts });
     } catch (error) {
       console.error("Error getting feed posts:", error);
@@ -96,17 +122,19 @@ export const usePostStore = create((set, get) => ({
   toggleLike: async (postId) => {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/like`);
-      
+      const authUserId = useAuthStore.getState().authUser?._id;
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === postId
             ? {
                 ...post,
                 isLiked: res.data.isLiked,
-                likesCount: res.data.likes,
-                likes: res.data.isLiked 
-                  ? [...(post.likes || []), useAuthStore.getState().authUser._id]
-                  : (post.likes || []).filter(id => id !== useAuthStore.getState().authUser._id)
+                likes: res.data.isLiked
+                  ? [...(Array.isArray(post.likes) ? post.likes : []), authUserId]
+                  : (Array.isArray(post.likes) ? post.likes : []).filter((id) => id !== authUserId),
+                likesCount: res.data.isLiked
+                  ? (Array.isArray(post.likes) ? post.likes.length : 0) + 1
+                  : (Array.isArray(post.likes) ? post.likes.length : 0) - 1,
               }
             : post
         ),
@@ -121,20 +149,23 @@ export const usePostStore = create((set, get) => ({
   addComment: async (postId, content) => {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/comment`, { content });
-
+      const newComment = {
+        ...res.data,
+        likes: Array.isArray(res.data.likes) ? res.data.likes : [],
+        replies: Array.isArray(res.data.replies) ? res.data.replies : [],
+      };
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === postId
             ? {
                 ...post,
-                comments: [...(post.comments || []), res.data],
-                commentsCount: (post.commentsCount || 0) + 1,
+                comments: [...(Array.isArray(post.comments) ? post.comments : []), newComment],
+                commentsCount: (Array.isArray(post.comments) ? post.comments.length : 0) + 1,
               }
             : post
         ),
       });
-
-      return res.data;
+      return newComment;
     } catch (error) {
       console.error("Error adding comment:", error);
       toast.error(error.response?.data?.message || "Failed to add comment");
@@ -146,22 +177,22 @@ export const usePostStore = create((set, get) => ({
   likeComment: async (postId, commentId) => {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/comment/${commentId}/like`);
-      
+      const authUserId = useAuthStore.getState().authUser?._id;
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === postId
             ? {
                 ...post,
-                comments: post.comments.map(comment =>
+                comments: post.comments.map((comment) =>
                   comment._id === commentId
                     ? {
                         ...comment,
-                        likes: res.data.isLiked 
-                          ? [...(comment.likes || []), useAuthStore.getState().authUser._id]
-                          : (comment.likes || []).filter(id => id !== useAuthStore.getState().authUser._id)
+                        likes: res.data.isLiked
+                          ? [...(Array.isArray(comment.likes) ? comment.likes : []), authUserId]
+                          : (Array.isArray(comment.likes) ? comment.likes : []).filter((id) => id !== authUserId),
                       }
                     : comment
-                )
+                ),
               }
             : post
         ),
@@ -176,26 +207,28 @@ export const usePostStore = create((set, get) => ({
   replyToComment: async (postId, commentId, content) => {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/comment/${commentId}/reply`, { content });
-
+      const newReply = {
+        ...res.data,
+        likes: Array.isArray(res.data.likes) ? res.data.likes : [],
+      };
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === postId
             ? {
                 ...post,
-                comments: post.comments.map(comment =>
+                comments: post.comments.map((comment) =>
                   comment._id === commentId
                     ? {
                         ...comment,
-                        replies: [...(comment.replies || []), res.data]
+                        replies: [...(Array.isArray(comment.replies) ? comment.replies : []), newReply],
                       }
                     : comment
-                )
+                ),
               }
             : post
         ),
       });
-
-      return res.data;
+      return newReply;
     } catch (error) {
       console.error("Error replying to comment:", error);
       toast.error(error.response?.data?.error || "Failed to reply");
@@ -207,29 +240,29 @@ export const usePostStore = create((set, get) => ({
   likeReply: async (postId, commentId, replyId) => {
     try {
       const res = await axiosInstance.post(`/posts/${postId}/comment/${commentId}/reply/${replyId}/like`);
-      
+      const authUserId = useAuthStore.getState().authUser?._id;
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === postId
             ? {
                 ...post,
-                comments: post.comments.map(comment =>
+                comments: post.comments.map((comment) =>
                   comment._id === commentId
                     ? {
                         ...comment,
-                        replies: comment.replies.map(reply =>
+                        replies: comment.replies.map((reply) =>
                           reply._id === replyId
                             ? {
                                 ...reply,
-                                likes: res.data.isLiked 
-                                  ? [...(reply.likes || []), useAuthStore.getState().authUser._id]
-                                  : (reply.likes || []).filter(id => id !== useAuthStore.getState().authUser._id)
+                                likes: res.data.isLiked
+                                  ? [...(Array.isArray(reply.likes) ? reply.likes : []), authUserId]
+                                  : (Array.isArray(reply.likes) ? reply.likes : []).filter((id) => id !== authUserId),
                               }
                             : reply
-                        )
+                        ),
                       }
                     : comment
-                )
+                ),
               }
             : post
         ),
@@ -248,30 +281,56 @@ export const usePostStore = create((set, get) => ({
     socket.on("newPost", (newPost) => {
       const transformedPost = {
         ...newPost,
+        likes: Array.isArray(newPost.likes) ? newPost.likes : [],
+        comments: Array.isArray(newPost.comments) ? newPost.comments : [],
+        shares: Array.isArray(newPost.shares) ? newPost.shares : [],
         isLiked: false,
-        likesCount: newPost.likes?.length || 0,
-        commentsCount: newPost.comments?.length || 0,
-        sharesCount: newPost.shares?.length || 0
+        likesCount: Array.isArray(newPost.likes) ? newPost.likes.length : 0,
+        commentsCount: Array.isArray(newPost.comments) ? newPost.comments.length : 0,
+        sharesCount: Array.isArray(newPost.shares) ? newPost.shares.length : 0,
+        comments: Array.isArray(newPost.comments)
+          ? newPost.comments.map((comment) => ({
+              ...comment,
+              likes: Array.isArray(comment.likes) ? comment.likes : [],
+              replies: Array.isArray(comment.replies)
+                ? comment.replies.map((reply) => ({
+                    ...reply,
+                    likes: Array.isArray(reply.likes) ? reply.likes : [],
+                  }))
+                : [],
+            }))
+          : [],
       };
-      
       set({ posts: [transformedPost, ...get().posts] });
     });
 
     socket.on("postUpdate", (update) => {
       set({
-        posts: get().posts.map(post =>
-          post._id === update.postId ? { ...post, ...update } : post
+        posts: get().posts.map((post) =>
+          post._id === update.postId
+            ? {
+                ...post,
+                ...update,
+                likes: Array.isArray(update.likes) ? update.likes : [],
+                comments: Array.isArray(update.comments) ? update.comments : [],
+                shares: Array.isArray(update.shares) ? update.shares : [],
+              }
+            : post
         ),
       });
     });
 
     socket.on("newComment", (update) => {
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === update.postId
             ? {
                 ...post,
-                comments: [...(post.comments || []), update.comment],
+                comments: [...(Array.isArray(post.comments) ? post.comments : []), {
+                  ...update.comment,
+                  likes: Array.isArray(update.comment.likes) ? update.comment.likes : [],
+                  replies: Array.isArray(update.comment.replies) ? update.comment.replies : [],
+                }],
                 commentsCount: update.commentsCount,
               }
             : post
@@ -281,18 +340,21 @@ export const usePostStore = create((set, get) => ({
 
     socket.on("newReply", (update) => {
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === update.postId
             ? {
                 ...post,
-                comments: post.comments.map(comment =>
+                comments: post.comments.map((comment) =>
                   comment._id === update.commentId
                     ? {
                         ...comment,
-                        replies: [...(comment.replies || []), update.reply]
+                        replies: [...(Array.isArray(comment.replies) ? comment.replies : []), {
+                          ...update.reply,
+                          likes: Array.isArray(update.reply.likes) ? update.reply.likes : [],
+                        }],
                       }
                     : comment
-                )
+                ),
               }
             : post
         ),
@@ -301,15 +363,19 @@ export const usePostStore = create((set, get) => ({
 
     socket.on("commentUpdate", (update) => {
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === update.postId
             ? {
                 ...post,
-                comments: post.comments.map(comment =>
+                comments: post.comments.map((comment) =>
                   comment._id === update.commentId
-                    ? { ...comment, likes: update.likes, isLiked: update.isLiked }
+                    ? {
+                        ...comment,
+                        likes: Array.isArray(update.likes) ? update.likes : [],
+                        isLiked: update.isLiked,
+                      }
                     : comment
-                )
+                ),
               }
             : post
         ),
@@ -318,22 +384,26 @@ export const usePostStore = create((set, get) => ({
 
     socket.on("replyUpdate", (update) => {
       set({
-        posts: get().posts.map(post =>
+        posts: get().posts.map((post) =>
           post._id === update.postId
             ? {
                 ...post,
-                comments: post.comments.map(comment =>
+                comments: post.comments.map((comment) =>
                   comment._id === update.commentId
                     ? {
                         ...comment,
-                        replies: comment.replies.map(reply =>
+                        replies: comment.replies.map((reply) =>
                           reply._id === update.replyId
-                            ? { ...reply, likes: update.likes, isLiked: update.isLiked }
+                            ? {
+                                ...reply,
+                                likes: Array.isArray(update.likes) ? update.likes : [],
+                                isLiked: update.isLiked,
+                              }
                             : reply
-                        )
+                        ),
                       }
                     : comment
-                )
+                ),
               }
             : post
         ),
@@ -342,7 +412,7 @@ export const usePostStore = create((set, get) => ({
 
     socket.on("postDeleted", (update) => {
       set({
-        posts: get().posts.filter(post => post._id !== update.postId),
+        posts: get().posts.filter((post) => post._id !== update.postId),
       });
     });
   },

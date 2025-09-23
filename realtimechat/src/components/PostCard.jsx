@@ -23,7 +23,7 @@ const PostCard = ({ post }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [showReplyEmojis, setShowReplyEmojis] = useState(false);
-  
+
   const { toggleLike, addComment, sharePost, deletePost, likeComment, replyToComment, likeReply } = usePostStore();
   const { authUser } = useAuthStore();
   const socialShare = useSocialShare(post);
@@ -138,16 +138,16 @@ const PostCard = ({ post }) => {
             </p>
           </div>
         </div>
-        
+
         <div className="relative">
-          <button 
+          <button
             className="btn btn-ghost btn-sm btn-circle"
             onClick={handleOptionsClick}
             type="button"
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
-          
+
           {showOptionsMenu && (
             <>
               <div className="absolute right-0 top-full mt-2 bg-base-100 border border-base-300 rounded-lg shadow-lg py-2 z-50 min-w-32">
@@ -226,11 +226,11 @@ const PostCard = ({ post }) => {
                 {formatMessageTime(post.originalPost.createdAt)}
               </span>
             </div>
-            
+
             {post.originalPost.content && (
               <p className="text-sm mb-2">{post.originalPost.content}</p>
             )}
-            
+
             {post.originalPost.image && (
               <img
                 src={post.originalPost.image}
@@ -264,10 +264,10 @@ const PostCard = ({ post }) => {
 
       {/* Post Stats */}
       <div className="px-4 py-2 border-t border-base-200 flex items-center justify-between text-sm text-base-content/60">
-        <span>{post.likes?.length || 0} likes</span>
+        <span>{Array.isArray(post.likes) ? post.likes.length : 0} likes</span>
         <div className="flex gap-4">
-          <span>{post.comments?.length || 0} comments</span>
-          <span>{post.shares?.length || 0} shares</span>
+          <span>{Array.isArray(post.comments) ? post.comments.length : 0} comments</span>
+          <span>{Array.isArray(post.shares) ? post.shares.length : 0} shares</span>
         </div>
       </div>
 
@@ -276,10 +276,14 @@ const PostCard = ({ post }) => {
         <button
           onClick={handleLike}
           className={`btn btn-ghost btn-sm flex-1 ${
-            post.likes?.includes(authUser?._id) ? "text-red-500" : ""
+            Array.isArray(post.likes) && post.likes.includes(authUser?._id) ? "text-red-500" : ""
           }`}
         >
-          <Heart className={`w-4 h-4 mr-2 ${post.likes?.includes(authUser?._id) ? "fill-current" : ""}`} />
+          <Heart
+            className={`w-4 h-4 mr-2 ${
+              Array.isArray(post.likes) && post.likes.includes(authUser?._id) ? "fill-current" : ""
+            }`}
+          />
           Like
         </button>
         <button
@@ -289,7 +293,7 @@ const PostCard = ({ post }) => {
           <MessageCircle className="w-4 h-4 mr-2" />
           Comment
         </button>
-        
+
         {/* Share Button with Dropdown */}
         <div className="relative flex-1">
           <div className="dropdown dropdown-top dropdown-end w-full">
@@ -335,7 +339,7 @@ const PostCard = ({ post }) => {
         <div className="border-t border-base-200 p-4">
           {/* Comments List */}
           <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
-            {post.comments?.map((comment) => (
+            {Array.isArray(post.comments) && post.comments.map((comment) => (
               <div key={comment._id} className="space-y-2">
                 {/* Main Comment */}
                 <div className="flex gap-2">
@@ -349,18 +353,22 @@ const PostCard = ({ post }) => {
                       <p className="font-medium text-sm">{comment.user?.fullName}</p>
                       <p className="text-sm">{comment.content}</p>
                     </div>
-                    
+
                     {/* Comment Actions */}
                     <div className="flex items-center gap-4 mt-1 text-xs text-base-content/60">
                       <span>{formatMessageTime(comment.createdAt)}</span>
                       <button
                         onClick={() => handleCommentLike(comment._id)}
                         className={`flex items-center gap-1 hover:text-red-500 ${
-                          comment.likes?.includes(authUser?._id) ? "text-red-500" : ""
+                          Array.isArray(comment.likes) && comment.likes.includes(authUser?._id) ? "text-red-500" : ""
                         }`}
                       >
-                        <Heart className={`w-3 h-3 ${comment.likes?.includes(authUser?._id) ? "fill-current" : ""}`} />
-                        {comment.likes?.length || 0}
+                        <Heart
+                          className={`w-3 h-3 ${
+                            Array.isArray(comment.likes) && comment.likes.includes(authUser?._id) ? "fill-current" : ""
+                          }`}
+                        />
+                        {Array.isArray(comment.likes) ? comment.likes.length : 0}
                       </button>
                       <button
                         onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
@@ -371,7 +379,7 @@ const PostCard = ({ post }) => {
                     </div>
 
                     {/* Replies */}
-                    {comment.replies?.length > 0 && (
+                    {Array.isArray(comment.replies) && comment.replies.length > 0 && (
                       <div className="ml-4 mt-2 space-y-2">
                         {comment.replies.map((reply) => (
                           <div key={reply._id} className="flex gap-2">
@@ -390,11 +398,15 @@ const PostCard = ({ post }) => {
                                 <button
                                   onClick={() => handleReplyLike(comment._id, reply._id)}
                                   className={`flex items-center gap-1 hover:text-red-500 ${
-                                    reply.likes?.includes(authUser?._id) ? "text-red-500" : ""
+                                    Array.isArray(reply.likes) && reply.likes.includes(authUser?._id) ? "text-red-500" : ""
                                   }`}
                                 >
-                                  <Heart className={`w-3 h-3 ${reply.likes?.includes(authUser?._id) ? "fill-current" : ""}`} />
-                                  {reply.likes?.length || 0}
+                                  <Heart
+                                    className={`w-3 h-3 ${
+                                      Array.isArray(reply.likes) && reply.likes.includes(authUser?._id) ? "fill-current" : ""
+                                    }`}
+                                  />
+                                  {Array.isArray(reply.likes) ? reply.likes.length : 0}
                                 </button>
                               </div>
                             </div>
@@ -422,7 +434,7 @@ const PostCard = ({ post }) => {
                                 className="input input-bordered input-sm flex-1"
                                 maxLength={500}
                               />
-                              
+
                               <div className="relative">
                                 <button
                                   type="button"
@@ -486,7 +498,7 @@ const PostCard = ({ post }) => {
                   className="input input-bordered input-sm flex-1"
                   maxLength={500}
                 />
-                
+
                 <div className="relative">
                   <button
                     type="button"
@@ -562,11 +574,11 @@ const PostCard = ({ post }) => {
                   />
                   <span className="text-sm font-medium">{post.author?.fullName}</span>
                 </div>
-                
+
                 {post.content && (
                   <p className="text-sm text-base-content/80 line-clamp-3">{post.content}</p>
                 )}
-                
+
                 {post.image && (
                   <img
                     src={post.image}
@@ -597,7 +609,7 @@ const PostCard = ({ post }) => {
       )}
 
       {/* Social Share Modal */}
-      <SocialShareModal 
+      <SocialShareModal
         isOpen={showSocialShareModal}
         onClose={() => setSocialShareModal(false)}
         post={post}
@@ -645,8 +657,8 @@ const PostCard = ({ post }) => {
 
       {/* Click outside to close menus */}
       {showOptionsMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={(e) => {
             e.preventDefault();
             setShowOptionsMenu(false);
@@ -655,15 +667,15 @@ const PostCard = ({ post }) => {
       )}
 
       {showEmojis && (
-        <div 
-          className="fixed inset-0 z-10" 
+        <div
+          className="fixed inset-0 z-10"
           onClick={() => setShowEmojis(false)}
         />
       )}
 
       {showReplyEmojis && (
-        <div 
-          className="fixed inset-0 z-10" 
+        <div
+          className="fixed inset-0 z-10"
           onClick={() => setShowReplyEmojis(false)}
         />
       )}
